@@ -33,7 +33,7 @@
 #define SECTION_INDEX_ITEM_PAGING       0
 
 #define NUM_OF_ITEMS_IN_CATEGORY_BAR    8
-#define CATIDX_WEBVIEW                  4
+#define CATIDX_WEBVIEW                  100
 
 #define NUM_OF_ITEMS_IN_SECTION_ENTRY   2
 #define NUM_OF_ITEMS_IN_SECTION_ITEM    20
@@ -109,7 +109,7 @@
         }
         self.backgroundColor = [UIColor colorWithRed:245.0 / 255.0 green:245.0 / 255.0 blue:245.0 / 255.0 alpha:1.0];
         self.showsVerticalScrollIndicator = NO;
-        // self.contentInset = UIEdgeInsetsMake(10, 0, 0, 0);
+        // self.contentInset = UIEdgeInsetsMake(10, 10, 10, 10);
 
         [self registerClass:[SUIItemViewCell class] forCellWithReuseIdentifier:@REUSE_ID_ENTRY];
         [self registerClass:[SUIImageItemViewCell class] forCellWithReuseIdentifier:@REUSE_ID_ITEM];
@@ -182,8 +182,33 @@
     
     NSMutableArray<NSMutableDictionary *> *items = nil;
     
-    CGFloat itemWidth = (ITEM_COLUMNS == 1) ? (self.bounds.size.width - SECTION_INSET_ITEM_LEFT - SECTION_INSET_ITEM_RIGHT) : ((self.bounds.size.width - SECTION_INSET_ITEM_LEFT - SECTION_INSET_ITEM_RIGHT - (ITEM_COLUMNS - 1) * ITEM_SPACING_ITEM) / ITEM_COLUMNS);
+    UIEdgeInsets insets = self.contentInset;
     
+    NSMutableArray<NSNumber *> *widthOfColumns = [[NSMutableArray<NSNumber *> alloc] initWithCapacity:ITEM_COLUMNS];
+    CGFloat availableColumnSize = self.bounds.size.width - (insets.left + insets.right + SECTION_INSET_ITEM_LEFT + SECTION_INSET_ITEM_RIGHT);
+    for (NSInteger idx = 0; idx < ITEM_COLUMNS; idx++)
+    {
+        if (idx == (ITEM_COLUMNS - 1))
+        {
+            [widthOfColumns addObject:[NSNumber numberWithDouble:availableColumnSize]];
+        }
+        else
+        {
+            CGFloat itemWidth =  round((availableColumnSize - (ITEM_COLUMNS - idx - 1) * ITEM_SPACING_ITEM) / (ITEM_COLUMNS - idx));
+            [widthOfColumns addObject:[NSNumber numberWithDouble:itemWidth]];
+            availableColumnSize -= (itemWidth + ITEM_SPACING_ITEM);
+        }
+    }
+    
+    CGFloat itemWidth = CGFLOAT_MAX;
+    for (NSNumber *number in widthOfColumns)
+    {
+        if (itemWidth > number.doubleValue)
+        {
+            itemWidth = number.doubleValue;
+        }
+    }
+
     // Using a array for variable heights
     unsigned int productHeights[] = {60};
 
@@ -192,7 +217,7 @@
         NSInteger bgIndex = 4 * catIdx;
         NSInteger imageColorIndex = 16 * catIdx;
         
-        NSInteger numberOfItems = (catIdx == 4) ? 1 : NUM_OF_ITEMS_IN_SECTION_ITEM;
+        NSInteger numberOfItems = (catIdx == CATIDX_WEBVIEW) ? 1 : NUM_OF_ITEMS_IN_SECTION_ITEM;
         
         items = [[NSMutableArray<NSMutableDictionary *> alloc] initWithCapacity:numberOfItems];
         [m_items addObject:items];
@@ -338,7 +363,11 @@
 - (void)switchPage:(NSInteger)page
 {
    // Save ContentOffset for current page
-    m_pageContexts[m_page] = self.contentOffset;
+    if (m_isCategoryBarSticky)
+    {
+        m_pageContexts[m_page] = self.contentOffset;
+        // NSLog(@"DBG: save page %ld contentOffset.y = %f", m_page, self.contentOffset.y);
+    }
     
     // Switch to new page
     m_page = page;
@@ -364,10 +393,13 @@
             layout.pagingOffset = CGPointZero;
         }];
     } completion:^(BOOL finished) {
+        
         if (contentOffsetInvalidated)
         {
             self.contentOffset = contentOffset;
+            // NSLog(@"DBG: contentOffset.y = %f", contentOffset.y);
         }
+        
         [self cleanPagingViews];
         
         [self->m_categoryBarView selectItemAt:page animated:YES];
@@ -413,9 +445,10 @@
 {
     if (collectionView == self)
     {
+        UIEdgeInsets insets = self.contentInset;
         if (SECTION_INDEX_ENTRY == indexPath.section)
         {
-            return CGSizeMake(self.bounds.size.width, ITEM_HEIGHT_ENTRY);
+            return CGSizeMake(self.bounds.size.width - (insets.left + insets.right), ITEM_HEIGHT_ENTRY);
         }
         else if (SECTION_INDEX_ITEM == indexPath.section)
         {
@@ -437,9 +470,10 @@
 {
     if (collectionView == self)
     {
+        UIEdgeInsets insets = self.contentInset;
         if (SECTION_INDEX_CATBAR == section)
         {
-            return CGSizeMake(self.bounds.size.width, ITEM_HEIGHT_CATBAR);
+            return CGSizeMake(self.bounds.size.width - (insets.left + insets.right), ITEM_HEIGHT_CATBAR);
         }
     }
     

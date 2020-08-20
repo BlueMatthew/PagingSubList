@@ -10,7 +10,7 @@
 #import "TimerAnimation.h"
 
 static const NSTimeInterval UIScrollViewAnimationDuration = 0.33;
-// static const NSTimeInterval UIScrollViewQuickAnimationDuration = 0.22;
+static const NSTimeInterval UIScrollViewQuickAnimationDuration = 0.22;
 
 @interface UIPagingContext : NSObject
 
@@ -285,19 +285,19 @@ static const NSTimeInterval UIScrollViewAnimationDuration = 0.33;
                         __block UIPagingContext *swipeContext = m_pagingContext;
                         __block UICollectionViewScrollDirection swipeDirection = m_swipeDirection;
                         
-                        __block BOOL userInteractionEnabled = self.userInteractionEnabled;
-                        self.userInteractionEnabled = NO;
+                        // __block BOOL userInteractionEnabled = self.userInteractionEnabled;
+                        // self.userInteractionEnabled = NO;
                         
                         __block CGFloat startValue = (m_swipeDirection == UICollectionViewScrollDirectionHorizontal) ? translation.x : translation.y;
                         __block CGFloat endValue = (m_swipeDirection == UICollectionViewScrollDirectionHorizontal) ? targetOffset.x : targetOffset.y;
                         __block CGFloat decelerationRate = UIScrollViewDecelerationRateNormal;
                         
-                        TimerAnimation *timerAnimation = [[TimerAnimation alloc] initWithDuration:UIScrollViewAnimationDuration animations:^(CGFloat progress) {
+                        TimerAnimation *timerAnimation = [[TimerAnimation alloc] initWithDuration:UIScrollViewQuickAnimationDuration animations:^(CGFloat progress) {
                             CGFloat value = startValue + (1 - powf((1 - progress), decelerationRate)) * (endValue - startValue);
                             CGPoint offset = (swipeDirection == UICollectionViewScrollDirectionHorizontal) ?  CGPointMake(value, 0) : CGPointMake(0, value);
                             [self pagingWithOffset:offset decelerating:YES onPagingContext:swipeContext andBindingPagingViews:YES];
                         } completion:^(BOOL finished) {
-                            self.userInteractionEnabled = userInteractionEnabled;
+                            // self.userInteractionEnabled = userInteractionEnabled;
                             
                             BOOL cleanPagingViews = YES;
                             if (newPage != swipeContext.page)
@@ -388,14 +388,16 @@ static const NSTimeInterval UIScrollViewAnimationDuration = 0.33;
     }
     
     UIView *view = [self.pagingDelegate pagingCollectionView:self viewForPage:newPage inSection:pageContext.section];
+    CGRect frame = [self convertRect:view.frame toView:self.superview];
     CGFloat xOffset = (m_swipeDirection == UICollectionViewScrollDirectionHorizontal) ? (pageContext.leftOrRight ? self.bounds.size.width : -self.bounds.size.width) : 0;
     CGFloat yOffset = (m_swipeDirection == UICollectionViewScrollDirectionHorizontal) ? 0 : (pageContext.leftOrRight ? self.bounds.size.height : -self.bounds.size.height);
-    view.frame = CGRectOffset(view.frame, xOffset, yOffset);
-    *pOriginalFrame = view.frame;
-
+    frame = CGRectOffset(frame, xOffset, yOffset);
+    view.frame = frame;
+    
+    *pOriginalFrame = frame;
     *pView = view;
     
-    [self addSubview:view];
+    [self.superview addSubview:view];
 }
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer

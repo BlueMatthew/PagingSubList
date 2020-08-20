@@ -10,7 +10,7 @@
 #include <map>
 
 @interface UICollectionViewPagingLayoutInvalidationContext : UICollectionViewFlowLayoutInvalidationContext
-@property (nonatomic, assign) BOOL invalidateOffset; // Paging Or Sticky
+@property (nonatomic, assign) BOOL invalidatedOffset; // Paging Or Sticky
 
 @end
 
@@ -89,7 +89,7 @@
 - (void)invalidateOffset
 {
     UICollectionViewPagingLayoutInvalidationContext *context = (UICollectionViewPagingLayoutInvalidationContext *)[[[UICollectionViewPagingLayout invalidationContextClass] alloc] init];
-    context.invalidateOffset = YES;
+    context.invalidatedOffset = YES;
     [self invalidateLayoutWithContext:context];
 }
 
@@ -136,7 +136,7 @@
     if ([context isKindOfClass:[UICollectionViewPagingLayout invalidationContextClass]])
     {
         UICollectionViewPagingLayoutInvalidationContext *pagingInvalidationContext = (UICollectionViewPagingLayoutInvalidationContext *)context;
-        if (!pagingInvalidationContext.invalidateOffset)
+        if (!pagingInvalidationContext.invalidatedOffset)
         {
             // It is not caused by internal offset change, should call prepareLayout
             m_layoutInvalidated = YES;
@@ -217,14 +217,15 @@
             CGPoint origin = layoutAttributes.frame.origin;
             CGPoint oldOrigin = origin;
             
-            origin.y = MAX(contentOffset.y + totalHeaderHeight + contentInset.top, origin.y);
+            origin.y = MAX(contentOffset.y + totalHeaderHeight, origin.y);
             
             layoutAttributes.frame = (CGRect){ .origin = CGPointMake(origin.x, origin.y), .size = layoutAttributes.frame.size };
            
             // If original mode is sticky, we check contentOffset and if contentOffset.y is less than origin.y, it is exiting sticky mode
             // Otherwise, we check the top of sticky header
-            BOOL stickyMode = it->second ? ((contentOffset.y + contentInset.top < oldOrigin.y) ? NO : YES) : ((layoutAttributes.frame.origin.y > oldOrigin.y) ? YES : NO);
-           
+            BOOL stickyMode = (layoutAttributes.frame.origin.y >= oldOrigin.y) && (layoutAttributes.frame.origin.y == contentOffset.y + totalHeaderHeight) ? YES : NO;
+            BOOL originChanged = (layoutAttributes.frame.origin.y != oldOrigin.y) ? YES : NO;
+            
             if (stickyMode != it->second)
             {
                 // Notify caller if changed
@@ -232,7 +233,7 @@
                 stickyMode ? [self enterStickyModeAt:it->first withOriginalPoint:oldOrigin] : [self exitStickyModeAt:it->first];
             }
             
-            layoutAttributes.zIndex = 1024 + it->first;  //
+            layoutAttributes.zIndex = originChanged ? (1024 + it->first) : 0;  //
             
             totalHeaderHeight += headerHeight;
         }
