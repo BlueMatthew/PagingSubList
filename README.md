@@ -20,6 +20,9 @@
 
 后续，为了解决不同分页切换存在的隐患，在考虑通过Layout来实现多个分页的方案，还在iOS下进行实验。
 
+参考：
+[Sticky Headers for UICollectionView using UICollectionViewFlowLayout](https://blog.radi.ws/post/32905838158/sticky-headers-for-uicollectionview-using)
+
 说明：
 1. 假设列表是纵向滚动 子列表切换是横向变换 (反之处理原理是一样的)
 2. iOS平台系统也提供了SwipeGesture，网评不如直接使用PanGesture好，未深究过。
